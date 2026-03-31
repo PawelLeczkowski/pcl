@@ -8,6 +8,7 @@
 #include <windows.h>
 #include "pcldef.h"
 #include "pcl_ascii.h"
+#include "pcl_Unicode.h"
 
 extern HANDLE pclMutexHandle;
 

@@ -52,8 +52,8 @@ struct UnicodeScreen {
 	struct Decoration decoration;
 
 	// default values
-	wchar_t data1;
-	wchar_t data2;
+	wchar_t defaultData1;
+	wchar_t defaultData2;
 	unsigned int defaultForegroundRed, defaultForegroundGreen, defaultForegroundBlue;
 	unsigned int defaultBackgroundRed, defaultBackgroundGreen, defaultBackgroundBlue;
 };
