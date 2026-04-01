@@ -512,6 +512,24 @@ int setcharunicode(struct UnicodeScreen *unicode, wchar_t *c) {
 	return 0;
 }
 
+size_t wstrlen(const wchar_t *str) {
+	if (str == NULL) {
+		return 0;
+	}
+
+	size_t size = 0;
+	while (*str) {
+		if (*str >= 0xD800 && *str <= 0xDBFF) {
+			if (*(str + 1) >= 0xDC00 && *(str + 1) <= 0xDFFF) {
+				str++;
+			}
+		}
+		size++;
+		str++;
+	}
+	return size;
+}
+
 int setcharformattedunicode(struct UnicodeScreen *unicode, wchar_t * c, unsigned int foregroundRed, unsigned int foregroundGreen, unsigned int foregroundBlue,
 						unsigned int backgroundRed, unsigned int backgroundGreen, unsigned int backgroundBlue,
 						BOOL bold, BOOL dim, BOOL italic, BOOL underline, BOOL blinking, BOOL strikethrough, BOOL doubleunderline) {

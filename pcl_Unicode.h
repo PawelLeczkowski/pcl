@@ -634,5 +634,12 @@ int setcharcursorunicode(struct UnicodeScreen *unicode, wchar_t *c, unsigned int
  */
 int setcharunicode(struct UnicodeScreen *unicode, wchar_t *c);
 
+/**
+ * Returns size of wchar_t string encoded in utf-16
+ *
+ * @param str wchar_t string
+ * @return number of characters ins string
+ */
+size_t wstrlen(const wchar_t* str);
 
 #endif //PCL_PCL_UNICODE_H
