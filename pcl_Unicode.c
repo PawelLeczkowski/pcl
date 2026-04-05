@@ -28,7 +28,7 @@ struct UnicodeScreen* initunicode(struct Console *console) {
 	unicode->decoration.doubleunderline = FALSE;
 
 	unicode->defaultData1 = ' ';
-	unicode->defaultData2 = ' ';
+	unicode->defaultData2 = 0;
 	unicode->defaultForegroundRed = 255;
 	unicode->defaultForegroundGreen = 255;
 	unicode->defaultForegroundBlue = 255;
@@ -56,7 +56,7 @@ struct UnicodeScreen* initunicode(struct Console *console) {
 	 * unicode->height => last row
 	 * 4 => clear
 	 */
-	unicode->bufferSize = unicode->width * unicode->height * (19 + 19 + 1) * (5 * 7) + unicode->height + 4;
+	unicode->bufferSize = (unicode->width * unicode->height * (19 + 19 + 1) * (5 * 7) + unicode->height + 4) * 2;
 	unicode->buffer = malloc(sizeof (struct AsciiCell) * unicode->bufferSize);
 	if (unicode->buffer == NULL) {
 		free(unicode);
@@ -385,26 +385,26 @@ int clearbackgroundcolorunicode(struct UnicodeScreen *unicode) {
 /*
  * Sets char on cursor position. Changes cursor position.
  * Dangerous! Do not waits for mutex. Partially validates data.
+ * Pass only strings of size 1 character
 */
 void setcharunicodenotsafe(struct UnicodeScreen *unicode, wchar_t * c, unsigned int foregroundRed, unsigned int foregroundGreen, unsigned int foregroundBlue,
 						unsigned int backgroundRed, unsigned int backgroundGreen, unsigned int backgroundBlue,
 						struct Decoration decoration) {
 
-	wchar_t data1 = ' ', data2 = ' ';
+	wchar_t data1 = 0, data2 = 0;
 	size_t size = wcslen(c);
 	if (size == 0) {
 		return;
 	}
 	if (size == 1) {
-		c[0] = unicode->defaultData1;
+		data1 = c[0];
 	}
 	else {
-		c[0] = unicode->defaultData1;
-		c[1] = unicode->defaultData2;
+		data1 = c[0];
+		data2 = c[1];
 	}
 
-
-	switch (c[1]) {
+	switch (c[0]) {
 		case '\n': {
 			unicode->cursor += unicode->width;
 			unicode->cursor -= unicode->cursor % unicode->width;
@@ -416,7 +416,7 @@ void setcharunicodenotsafe(struct UnicodeScreen *unicode, wchar_t * c, unsigned 
 		case '\a': {
 			// not supported
 			c[0] = unicode->defaultData1;
-			c[1] = unicode->defaultData1;
+			c[1] = unicode->defaultData2;
 			break;
 		}
 		case '\b': {
@@ -499,6 +499,11 @@ int setcharcursorunicodenotsafe(struct UnicodeScreen *unicode, wchar_t* c, unsig
 int setcharunicode(struct UnicodeScreen *unicode, wchar_t *c) {
 	if (unicode == NULL) {
 		return -1;
+	}
+
+	// todo docs
+	if (wstrlen(c) != 1) {
+		return -2;
 	}
 
 	WaitForSingleObject(pclMutexHandle, INFINITE);
@@ -1671,13 +1676,13 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 	int place = 0;
 
 	// set cursor position to top left
-	char buff[4];
-	int add = sprintf(buff, "\x1B[H");
+	wchar_t buff[4];
+	int add = wsprintfW(buff, L"\x1B[H");
 
 	// init
 	WaitForSingleObject(pclMutexHandle, INFINITE);
 	memset(unicode->outputBuffer, 0, unicode->bufferSize);
-	memcpy(&unicode->outputBuffer[place], buff, add);
+	memcpy(&unicode->outputBuffer[place], buff, add+2);
 
 	place += add;
 
@@ -1814,8 +1819,8 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 			foregroundRed = cell.foregroundRed;
 			foregroundGreen = cell.foregroundGreen;
 			foregroundBlue = cell.foregroundBlue;
-			char colorbuff[20];
-			add = sprintf(colorbuff, "\x1B[38;2;%d;%d;%dm", foregroundRed, foregroundGreen, foregroundBlue);
+			wchar_t colorbuff[20];
+			add = wsprintfW(colorbuff, L"\x1B[38;2;%d;%d;%dm", foregroundRed, foregroundGreen, foregroundBlue);
 			memcpy(&unicode->outputBuffer[place], colorbuff, add);
 			place += add;
 		}
@@ -1823,14 +1828,19 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 			backgroundRed = cell.backgroundRed;
 			backgroundGreen = cell.backgroundGreen;
 			backgroundBlue = cell.backgroundBlue;
-			char colorbuff[20];
-			add = sprintf(colorbuff, "\x1B[48;2;%d;%d;%dm", backgroundRed, backgroundGreen, backgroundBlue);
+			wchar_t colorbuff[20];
+			add = wsprintfW(colorbuff, L"\x1B[48;2;%d;%d;%dm", backgroundRed, backgroundGreen, backgroundBlue);
 			memcpy(&unicode->outputBuffer[place], colorbuff, add);
 			place += add;
 		}
-		unicode->outputBuffer[place] = cell.data1;// bug check size of output buffer
-		unicode->outputBuffer[place] = cell.data2;
+
+
+		unicode->outputBuffer[place] = cell.data1;
 		place++;
+		if (cell.data2 != 0) {
+			unicode->outputBuffer[place] = cell.data2;
+			place++;
+		}
 	}
 
 	unicode->outputBuffer[place] = '\0';
@@ -1839,48 +1849,48 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 	// setting curosor position
 	unsigned int row = unicode->cursor / unicode->width + 1;
 	unsigned int col = unicode->cursor % unicode->width + 1;
-	char position[30];
-	sprintf(position, "\x1B[%d;%dH", row, col);
-	WriteConsoleW(console->outputHandle, position, strlen(position), NULL, NULL);
+	wchar_t position[30];
+	wsprintfW(position, L"\x1B[%d;%dH", row, col);
+	WriteConsoleW(console->outputHandle, position, wcslen(position), NULL, NULL);
 
-	char* cursorstyle;
+	wchar_t* cursorstyle;
 	switch (unicode->cursorstyle) {
 		case BLINKING_BLOCK: {
-			cursorstyle = "\x1B[1 q";
+			cursorstyle = L"\x1B[1 q";
 			break;
 		}
 		case STEADY_BLOCK: {
-			cursorstyle = "\x1B[2 q";
+			cursorstyle = L"\x1B[2 q";
 			break;
 		}
 		case BLINKING_UNDERLINE: {
-			cursorstyle = "\x1B[3 q";
+			cursorstyle = L"\x1B[3 q";
 			break;
 		}
 		case STEADY_UNDERLINE: {
-			cursorstyle = "\x1B[4 q";
+			cursorstyle = L"\x1B[4 q";
 			break;
 		}
 		default:
 		case BLINKING_BAR: {
-			cursorstyle = "\x1B[5 q";
+			cursorstyle = L"\x1B[5 q";
 			break;
 		}
 		case STEADY_BAR: {
-			cursorstyle = "\x1B[6 q";
+			cursorstyle = L"\x1B[6 q";
 			break;
 		}
 	}
 
-	WriteConsoleW(console->outputHandle, cursorstyle, strlen(cursorstyle), NULL, NULL);
+	WriteConsoleW(console->outputHandle, cursorstyle, wcslen(cursorstyle), NULL, NULL);
 
 	if (unicode->cursorVisible) {
-		char* show = "\x1B[?25h";
-		WriteConsoleW(console->outputHandle, show, strlen(show), NULL, NULL);
+		wchar_t* show = L"\x1B[?25h";
+		WriteConsoleW(console->outputHandle, show, wcslen(show), NULL, NULL);
 	}
 	else {
-		char* hide = "\x1B[?25l";
-		WriteConsoleW(console->outputHandle, hide, strlen(hide), NULL, NULL);
+		wchar_t* hide = L"\x1B[?25l";
+		WriteConsoleW(console->outputHandle, hide, wcslen(hide), NULL, NULL);
 	}
 
 	ReleaseMutex(pclMutexHandle);
@@ -1898,11 +1908,24 @@ int setstringunicode(struct UnicodeScreen *unicode, wchar_t *string) {
 	const size_t size = wcslen(string);
 	WaitForSingleObject(pclMutexHandle, INFINITE);
 	for (int i = 0; i < size; ++i) {
-		setcharunicodenotsafe(
-			unicode, string, // bug pass only char not entire string
-			unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
-			unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
-			unicode->decoration);
+		if (i + 1 < size &&	0xD800 <= string[i] && string[i] <= 0xDBFF && 0xDC00 <= string[i + 1] && string[i + 1] <= 0xDFFF) {
+			wchar_t pair[3] = { string[i], string[i + 1], L'\0' };
+
+			setcharunicodenotsafe(unicode, pair,
+				unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
+				unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
+				unicode->decoration);
+
+			i++;
+		} else {
+			wchar_t single[2] = { string[i], L'\0' };
+
+			setcharunicodenotsafe(unicode, single,
+				unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
+				unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
+				unicode->decoration);
+		}
+
 	}
 	ReleaseMutex(pclMutexHandle);
 	return 0;
