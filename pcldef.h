@@ -48,6 +48,7 @@ struct UnicodeScreen {
 	int cursorVisible;
 	int cursorstyle;
 	unsigned int cursor;
+	unsigned int realCursor;
 
 	struct Decoration decoration;
 

@@ -18,6 +18,7 @@ struct UnicodeScreen* initunicode(struct Console *console) {
 	unicode->cursorVisible = TRUE;
 	unicode->cursorstyle = BLINKING_BAR;
 	unicode->cursor = 0;
+	unicode->realCursor = 0;
 
 	unicode->decoration.bold = FALSE;
 	unicode->decoration.dim = FALSE;
@@ -473,6 +474,11 @@ void setcharunicodenotsafe(struct UnicodeScreen *unicode, wchar_t * c, unsigned 
 	unicode->buffer[unicode->cursor].decoration = decoration;
 	if (unicode->cursor < unicode->width * unicode->height - 1) {
 		unicode->cursor++;
+		unicode->realCursor++;
+	}
+
+	if (data2 != 0){
+		unicode->realCursor++;
 	}
 }
 
@@ -1847,8 +1853,8 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 	WriteConsoleW(console->outputHandle, unicode->outputBuffer, wcslen(unicode->outputBuffer), NULL, NULL);
 
 	// setting curosor position
-	unsigned int row = unicode->cursor / unicode->width + 1;
-	unsigned int col = unicode->cursor % unicode->width + 1;
+	unsigned int row = unicode->realCursor / unicode->width + 1;
+	unsigned int col = unicode->realCursor % unicode->width + 1;
 	wchar_t position[30];
 	wsprintfW(position, L"\x1B[%d;%dH", row, col);
 	WriteConsoleW(console->outputHandle, position, wcslen(position), NULL, NULL);
