@@ -600,6 +600,11 @@ int setcharformattedunicode(struct UnicodeScreen *unicode, wchar_t * c, unsigned
 		return -14;
 	}
 
+	// todo docs
+	if (wstrlen(c) != 1) {
+		return -2;
+	}
+
 	struct Decoration decoration = {
 		bold,
 		dim,
@@ -688,6 +693,11 @@ int setcharformattedcursorunicode(struct UnicodeScreen *unicode, unsigned int ro
 		return -16;
 	}
 
+	// todo docs
+	if (wstrlen(c) != 1) {
+		return -2;
+	}
+
 	switch (c[0]) { // bug switch by whole character
 		case '\n':
 		case '\a':
@@ -730,6 +740,8 @@ int setcharformattedcursorunicode(struct UnicodeScreen *unicode, unsigned int ro
 	return 0;
 }
 
+
+// todo test
 BOOL validateformatstringforsetstringformattedunicode(wchar_t *format) {
 	if (format == NULL) {
 		return FALSE;
@@ -739,7 +751,7 @@ BOOL validateformatstringforsetstringformattedunicode(wchar_t *format) {
 
 	BOOL openToken = FALSE;
 	for (int i = 0; i < length; ++i) {
-		char token = format[i];
+		wchar_t token = format[i];
 
 		// variable check
 		if (token == '%') {
@@ -927,6 +939,7 @@ BOOL validateformatstringforsetstringformattedunicode(wchar_t *format) {
 	return TRUE;
 }
 
+// todo test
 int setcharcursorunicode(struct UnicodeScreen *unicode, wchar_t * c, unsigned int row, unsigned int col) {
 	if (unicode == NULL) {
 		return -1;
@@ -952,6 +965,7 @@ int setcharcursorunicode(struct UnicodeScreen *unicode, wchar_t * c, unsigned in
 	return 0;
 }
 
+// todo test
 /*
  * Actual printf like logic. Does not provide any data validation
 */
@@ -1346,6 +1360,7 @@ int setstringformattedunicodenotsafe(struct UnicodeScreen *unicode, wchar_t *for
 	return length;
 }
 
+// todo test
 int setstringformattedunicode(struct UnicodeScreen *unicode, wchar_t *format, ...) {
 	if (unicode == NULL) {
 		return -1;
@@ -1372,6 +1387,7 @@ int setstringformattedunicode(struct UnicodeScreen *unicode, wchar_t *format, ..
 	return length;
 }
 
+// todo test
 int setstringformattedcursorunicode(struct UnicodeScreen *unicode, int row, int col, wchar_t * format, ...) {
 	if (unicode == NULL) {
 		return -1;
@@ -1421,6 +1437,7 @@ int setstringformattedcursorunicode(struct UnicodeScreen *unicode, int row, int 
 	return length;
 }
 
+// todo test
 int setstringcursorunicode(struct UnicodeScreen *unicode, wchar_t *string, int row, int col) {
 	if (unicode == NULL) {
 		return -1;
@@ -1457,6 +1474,7 @@ int setstringcursorunicode(struct UnicodeScreen *unicode, wchar_t *string, int r
 	return 0;
 }
 
+// todo test
 int clearunicode(struct UnicodeScreen *unicode) {
 	if (unicode == NULL) {
 		return -1;
@@ -1488,6 +1506,7 @@ int clearunicode(struct UnicodeScreen *unicode) {
 	return 0;
 }
 
+// todo test
 int fillunicode(struct UnicodeScreen *unicode, wchar_t * c, unsigned int foregroundRed, unsigned int foregroundGreen,
 	unsigned int foregroundBlue, unsigned int backgroundRed, unsigned int backgroundGreen, unsigned int backgroundBlue,
 	BOOL bold, BOOL dim, BOOL italic, BOOL underline, BOOL blinking, BOOL strikethrough, BOOL doubleunderline) {
@@ -1572,6 +1591,7 @@ int fillunicode(struct UnicodeScreen *unicode, wchar_t * c, unsigned int foregro
 	return 0;
 }
 
+// todo test
 int fillcharunicode(struct UnicodeScreen *unicode, wchar_t * c) {
 	if (unicode == NULL) {
 		return -1;
@@ -1596,6 +1616,7 @@ int fillcharunicode(struct UnicodeScreen *unicode, wchar_t * c) {
 	return 0;
 }
 
+// todo test
 int set2darrayunicode(struct UnicodeScreen *unicode, wchar_t* array, unsigned int row, unsigned int col, unsigned int width, unsigned int height) {
 	if (unicode == NULL) {
 		return -1;
@@ -1638,6 +1659,7 @@ int set2darrayunicode(struct UnicodeScreen *unicode, wchar_t* array, unsigned in
 	return 0;
 }
 
+// todo test
 int setcursorpositionunicode(struct UnicodeScreen *unicode, unsigned int row, unsigned int col) {
 	if (unicode == NULL) {
 		return -1;
@@ -1657,6 +1679,7 @@ int setcursorpositionunicode(struct UnicodeScreen *unicode, unsigned int row, un
 	return 0;
 }
 
+// todo test
 int getcursorpositionunicode(struct UnicodeScreen *unicode, unsigned int *row, unsigned int *col) {
 	if (unicode == NULL) {
 		return -1;
@@ -1673,6 +1696,7 @@ int getcursorpositionunicode(struct UnicodeScreen *unicode, unsigned int *row, u
 	return 0;
 }
 
+// todo test
 int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 	if (unicode == NULL) {
 		return -1;
@@ -1904,6 +1928,7 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 	return 0;
 }
 
+// todo test
 int setstringunicode(struct UnicodeScreen *unicode, wchar_t *string) {
 	if (unicode == NULL) {
 		return -1;
@@ -1937,6 +1962,7 @@ int setstringunicode(struct UnicodeScreen *unicode, wchar_t *string) {
 	return 0;
 }
 
+// todo test
 int getdimensionsunicode(struct UnicodeScreen *unicode, unsigned int* width, unsigned int* height) {
 	if (width == NULL) {
 		return -1;
