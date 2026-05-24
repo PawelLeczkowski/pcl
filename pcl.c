@@ -130,9 +130,12 @@ DWORD WINAPI inputthread(LPVOID lpParam) {
 						enqueue(console->inputQueue, &code);
 					}
 
-					// TODO unicode
 					if (console->asciiEcho != NULL) {
 						setcharascii(console->asciiEcho, lpBuffer[0].Event.KeyEvent.uChar.AsciiChar);
+					}
+					// TODO test
+					if (console->unicodeEcho != NULL) {
+						setcharunicode(console->unicodeEcho, &lpBuffer[0].Event.KeyEvent.uChar.UnicodeChar);
 					}
 				}
 				break;
@@ -162,7 +165,6 @@ DWORD WINAPI inputthread(LPVOID lpParam) {
 				const int height = lpBuffer[0].Event.WindowBufferSizeEvent.dwSize.Y;
 				const int width = lpBuffer[0].Event.WindowBufferSizeEvent.dwSize.X;
 
-				// TODO unicode
 				WaitForSingleObject(pclMutexHandle, INFINITE);
 
 				for (int i = 0; i < console->asciiScreensIndex; ++i) {
@@ -230,6 +232,75 @@ DWORD WINAPI inputthread(LPVOID lpParam) {
 					console->width = width;
 					console->height = height;
 					ascii->cursor = 0;
+				}
+
+				// todo test; definitely do not works
+				for (int i = 0; i < console->unicodeScreensIndex; ++i) {
+					struct UnicodeScreen* unicode = console->unicodeScreens[i];
+
+					struct UnicodeCell* newbuffer = malloc(sizeof(struct AsciiCell) * width * height);
+					if (newbuffer == NULL) {
+						fprintf(stderr, "Bad memory allocation in PCL internal code.\nPCL fatal error.\nTermination suggested.");
+						ExitThread(-1);
+					}
+					struct UnicodeCell* previousbuffer = unicode->buffer;
+
+					// newbuffer init
+					for (int j = 0; j < height * width; ++j) {
+						newbuffer[j].data1 = ' ';
+						newbuffer[j].data2 = ' ';
+						newbuffer[j].foregroundRed = unicode->defaultForegroundRed;
+						newbuffer[j].foregroundGreen = unicode->defaultForegroundGreen;
+						newbuffer[j].foregroundBlue = unicode->defaultForegroundBlue;
+						newbuffer[j].backgroundRed = unicode->defaultBackgroundRed;
+						newbuffer[j].backgroundGreen = unicode->defaultBackgroundGreen;
+						newbuffer[j].backgroundBlue = unicode->defaultBackgroundBlue;
+
+						newbuffer[j].decoration.bold = FALSE;
+						newbuffer[j].decoration.dim = FALSE;
+						newbuffer[j].decoration.italic = FALSE;
+						newbuffer[j].decoration.underline = FALSE;
+						newbuffer[j].decoration.blinking = FALSE;
+						newbuffer[j].decoration.strikethrough = FALSE;
+						newbuffer[j].decoration.doubleunderline = FALSE;
+					}
+
+					// copy prebuffer to newbuffer
+					for (unsigned int j = 0; j < unicode->width * unicode->height; j++) {
+						unsigned int row = j / unicode->width;
+						unsigned int col = j % unicode->width;
+
+						unsigned int newcursor = col + row * width;
+						if (newcursor >= width * height) {
+							continue;
+						}
+						newbuffer[newcursor] = previousbuffer[j];
+					}
+
+					free(previousbuffer);
+					unicode->buffer = newbuffer;
+
+					/*
+					 * ascii->width * ascii->height => characters
+					 * (19 + 19 + 1) => colors
+					 * (5 * 7) => font
+					 * ascii->height => last row
+					 * 4 => clear
+					*/
+					unicode->bufferSize = width * height * (19 + 19 + 1) * (5 * 7) + height + 4;
+
+					free(unicode->outputBuffer);
+					unicode->outputBuffer = malloc(unicode->bufferSize);
+					if (unicode->outputBuffer == NULL) {
+						fprintf(stderr, "Bad memory allocation in PCL internal code.\nPCL fatal error.\nTermination suggested.");
+						ExitThread(-2);
+					}
+
+					unicode->width = width;
+					unicode->height = height;
+					console->width = width;
+					console->height = height;
+					unicode->cursor = 0;
 				}
 
 				if (console->ResizeEvent != NULL) {
