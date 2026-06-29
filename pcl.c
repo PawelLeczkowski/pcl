@@ -347,6 +347,7 @@ struct Console* start(void) {
 	console->unicodeScreensIndex = 0;
 
 	console->asciiEcho = NULL;
+	console->unicodeEcho = NULL;
 
 	console->errorHandle = GetStdHandle(STD_ERROR_HANDLE);
 	console->blockInput = TRUE;

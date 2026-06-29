@@ -1349,12 +1349,29 @@ int setstringformattedunicodenotsafe(struct UnicodeScreen *unicode, wchar_t *for
 		}
 
 		// standard non-controlling character
-		setcharunicodenotsafe(unicode, format, // bug pass only one character
-							unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
-							unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
-							unicode->decoration);
+		if (0xD800 <= *format && *format <= 0xDBFF && 0xDC00 <= *(format + 1) && *(format + 1) <= 0xDFFF) {
+			wchar_t pair[3] = { *format, *(format + 1), L'\0' };
+
+			setcharunicodenotsafe(unicode, pair,
+				unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
+				unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
+				unicode->decoration);
+
+			format++;
+			format++;
+
+		} else {
+			wchar_t single[2] = { *format, L'\0' };
+
+			setcharunicodenotsafe(unicode, single,
+				unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
+				unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
+				unicode->decoration);
+
+			format++;
+		}
+
 		length++;
-		format++;
 	}
 
 	return length;
@@ -1649,10 +1666,27 @@ int set2darrayunicode(struct UnicodeScreen *unicode, wchar_t* array, unsigned in
 		unsigned int r = row + i / width;
 		unsigned int c = col + i % width;
 		if (r < unicode->height && c < unicode->width) {
-			setcharcursorunicodenotsafe(unicode, array/* bug pass only one character not entire string */, r, c,
-				unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
-				unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
-				unicode->decoration);
+			if (0xD800 <= *array && *array <= 0xDBFF && 0xDC00 <= *(array + 1) && *(array + 1) <= 0xDFFF) {
+				wchar_t pair[3] = { *array, *(array + 1), L'\0' };
+
+				setcharcursorunicodenotsafe(unicode, pair, r, c,
+					unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
+					unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
+					unicode->decoration);
+
+				array++;
+				array++;
+
+			} else {
+				wchar_t single[2] = { *array, L'\0' };
+
+				setcharcursorunicodenotsafe(unicode, single, r, c,
+					unicode->foregroundRed, unicode->foregroundGreen, unicode->foregroundBlue,
+					unicode->backgroundRed, unicode->backgroundGreen, unicode->backgroundBlue,
+					unicode->decoration);
+
+				array++;
+			}
 		}
 	}
 	ReleaseMutex(pclMutexHandle);
@@ -1851,7 +1885,7 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 			foregroundBlue = cell.foregroundBlue;
 			wchar_t colorbuff[20];
 			add = wsprintfW(colorbuff, L"\x1B[38;2;%d;%d;%dm", foregroundRed, foregroundGreen, foregroundBlue);
-			memcpy(&unicode->outputBuffer[place], colorbuff, add);
+			memcpy(&unicode->outputBuffer[place], colorbuff, add * sizeof(wchar_t));
 			place += add;
 		}
 		if (backgroundRed != cell.backgroundRed || backgroundGreen != cell.backgroundGreen || backgroundBlue != cell.backgroundBlue) {
@@ -1860,7 +1894,7 @@ int refreshunicode(struct Console* console, struct UnicodeScreen* unicode) {
 			backgroundBlue = cell.backgroundBlue;
 			wchar_t colorbuff[20];
 			add = wsprintfW(colorbuff, L"\x1B[48;2;%d;%d;%dm", backgroundRed, backgroundGreen, backgroundBlue);
-			memcpy(&unicode->outputBuffer[place], colorbuff, add);
+			memcpy(&unicode->outputBuffer[place], colorbuff, add * sizeof(wchar_t));
 			place += add;
 		}
 
